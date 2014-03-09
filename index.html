@@ -2,55 +2,70 @@
 <html lang="en" ng-app>
 <head>
   <meta charset="utf-8">
-  <title>Weather</title>
-  
+  <title>Weather Report</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="apple-mobile-web-app-capable" content="yes">
-
   <link rel="stylesheet" href="basscss.min.css" />
-
 </head>
-<body class="" ng-controller="WeatherCtrl">
+<body class="measure wrap p2" ng-controller="WeatherCtrl">
 
-  <p ng-show="loading" class="">Loading...</p>
-  
-  <div ng-if="forecast">
-    <header class="p2">
-      <h1>{{ forecast.currently.temperature | number:0 }}&deg;</h1>
-      <h2 class="">{{ forecast.currently.summary }} <span class="">{{ forecast.currently.precipProbability | number:0 }}%</span></h2>
-      <p>{{ forecast.minutely.summary }}</p>
-      <p>{{ forecast.hourly.summary }}</p>
-    </header>
-    <ul class="p2">
-      <li ng-repeat="hour in forecast.hourly.data | limitTo:12" class="">
-        <div class="small gray">{{ hour.time*1000 | date:'ha' }}</div>
-        <h2>{{ hour.temperature | number:0 }}&deg;</h2>
-        <p class="">{{ hour.summary }} <span ng-show="hour.precipProbability>1" class=""> {{ hour.precipProbability | number:0 }}%</span></p>
-      </li>
-    </ul>
-    <ul class="p2">
-      <li ng-repeat="day in forecast.daily.data" class="">
-        <div class="">
-          <span class="">{{ day.time*1000 | date:'EEE' }} </span>
-          <span class="">{{ day.temperatureMax | number:0 }}&deg;</span>
-          <span class="">{{ day.temperatureMin | number:0 }}&deg; </span>
-        </div>
-        <div class="">
-          <span class="">{{ day.summary }}</span>
-          <span ng-show="day.precipProbability>1" class=""> {{ day.precipProbability | number:0 }}%</span>
-        </div>
-      </li>
-    </ul>
+  <div ng-show="loading" class="p4 center">
+    <span class="geomicon h2 fill-mid-gray" data-id="loading"></span>
   </div>
   
-  <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.3/angular.min.js"></script>
+  <div ng-if="forecast">
+    <header class="mt2">
+      <h2 class="h2 mb0">{{ forecast.currently.summary }} </h2>
+      <h1 class="h0 mb0">{{ forecast.currently.temperature | number:0 }}&deg;</h1>
+      <!--
+      <p>[{{ forecast.currently.icon }}]</p>
+      -->
+      <p class="mb0">{{ forecast.minutely.summary }} {{ forecast.hourly.summary }}</p>
+      <p class="small mid-gray">Precipitation: {{ forecast.currently.precipProbability | number:0 }}% | Wind: {{ forecast.currently.windSpeed }} mph</p>
+    </header>
+
+    <section class="mb2">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 16" fill="#0cf">
+        <rect fill="#eee" width="60" height="16"/>
+        <path ng-attr-d="{{ graphD }}"/>
+      </svg>
+    </section>
+    <table class="table table-light leading-2 mb2">
+      <tr ng-repeat="hour in forecast.hourly.data | limitTo:8">
+        <td class="small mid-gray">{{ hour.time*1000 | date:'ha' }}</td>
+        <td class="bold px1">{{ hour.temperature | number:0 }}&deg;</td>
+        <td class="full-width ">{{ hour.summary }} <span ng-show="hour.precipProbability>1" class=""> {{ hour.precipProbability | number:0 }}%</span></td>
+      </tr>
+    </table>
+    <table class="table table-light leading-2">
+      <tr ng-repeat="day in forecast.daily.data">
+        <td class="mid-gray">{{ day.time*1000 | date:'EEE' }} </td>
+        <td class="px1 bold nowrap">{{ day.temperatureMax | number:0 }}&deg;
+          <span class="mid-gray">{{ day.temperatureMin | number:0 }}&deg;</span>
+        </td>
+        <td class="full-width">{{ day.summary }}</td>
+        <td ng-show="day.precipProbability>1" class=""> {{ day.precipProbability | number:0 }}%</td>
+      </tr>
+    </table>
+  </div>
+
+  <footer class="p4 center mid-gray">
+    <p class="small">Powered by <a href="http://forecast.io/">Forecast.io</a></p>
+  </footer>
+  
+  <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.14/angular.min.js"></script>
   <script>
     'use strict';
-
     function WeatherCtrl($scope, $http) {
-      
       $scope.loading = true;
-
+      $scope.graphD = '';
+      function createGraphD(data) {
+        $scope.graphD = 'M0 16'; 
+        for(var i = 0; i < data.length; i++){
+          $scope.graphD = $scope.graphD + ' L' + i + ' ' + (16 - (data[i].precipIntensity * 32));
+        };
+        $scope.graphD = $scope.graphD + ' L60 16 z';
+      };
       navigator.geolocation.getCurrentPosition(function(position) {
         $scope.$apply(function() {
           $http.jsonp('https://api.forecast.io/forecast/af26fc09b2d522c2b5e8013cd6a1a45f/' + position.coords.latitude + ',' + position.coords.longitude + '?callback=JSON_CALLBACK').
@@ -58,12 +73,30 @@
           success(function(forecast){
             $scope.forecast = forecast;
             $scope.loading = false;
+            createGraphD(forecast.minutely.data);
           });
         });
       });
 
     };
   </script>
+
+<script src="geomicons.min.js"></script>
+
+<style>
+  .h0 { font-size: 8rem; line-height: 8rem; }
+  .geomicon { width: 1em; height: 1em; }
+  .fill-mid-gray { fill: #666; }
+  .table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+  }
+  .table-light td { border-bottom: 1px solid #ccc; }
+  .table-light tr { border-top: 1px solid #ccc; }
+  .nowrap { white-space: nowrap; }
+  svg { width: 100%; height: auto; max-height: 100%; }
+</style>
 
 </body>
 </html>
