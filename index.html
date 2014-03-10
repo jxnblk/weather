@@ -15,6 +15,7 @@
   
   <div ng-if="forecast">
     <header class="mt2">
+      <h2 class="h2 mb0 mid-gray">{{ place }}</h2>
       <h2 class="h2 mb0">{{ forecast.currently.summary }} </h2>
       <h1 class="h0 mb0">{{ forecast.currently.temperature | number:0 }}&deg;</h1>
       <!--
@@ -59,12 +60,20 @@
     function WeatherCtrl($scope, $http) {
       $scope.loading = true;
       $scope.graphD = '';
+      $scope.place = '';
       function createGraphD(data) {
         $scope.graphD = 'M0 16'; 
         for(var i = 0; i < data.length; i++){
           $scope.graphD = $scope.graphD + ' L' + i + ' ' + (16 - (data[i].precipIntensity * 32));
         };
         $scope.graphD = $scope.graphD + ' L60 16 z';
+      };
+      function reverseLookup(lon, lat) {
+        $http.jsonp('http://api.tiles.mapbox.com/v3/jxnblk.hg2e937o/geocode/' + lon + ',' + lat + '.json?callback=JSON_CALLBACK').
+          success(function(response) {
+            console.log(response.results[0][1].name);
+            $scope.place = response.results[0][1].name;
+          });
       };
       navigator.geolocation.getCurrentPosition(function(position) {
         $scope.$apply(function() {
@@ -74,6 +83,7 @@
             $scope.forecast = forecast;
             $scope.loading = false;
             createGraphD(forecast.minutely.data);
+            reverseLookup(position.coords.longitude, position.coords.latitude);
           });
         });
       });
